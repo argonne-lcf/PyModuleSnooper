@@ -26,8 +26,7 @@ import socket
 import sys
 
 DATETIME_FMT = '%m-%d-%Y %H:%M:%S.%f'
-#LOGFILE_ROOT = os.path.join('/lus', 'theta-fs0', 'logs', 'pythonlogging', 'module_usage')
-LOGFILE_ROOT = os.path.join('/lus', 'swift', 'logs', 'pythonlogging', 'module_usage')
+LOGFILE_ROOT = os.path.join('/lus', 'theta-fs0', 'logs', 'pythonlogging', 'module_usage')
 
 def date_fmt(n):
     return "%02d" % n
@@ -52,7 +51,7 @@ class DictLogger:
 
         # LOGROOT/year/month/day/hostname.PID.hour.minute.second.m
         year,month,day = map(date_fmt, (now.year,now.month,now.day))
-        job_id = os.environ.get('PBS_JOBID', 'no-ID')
+        job_id = os.environ.get('COBALT_JOBID', 'no-ID')
         log_dir = os.path.join(LOGFILE_ROOT, year, month, day)
 
         fname = '{}.{}.{}'.format(
@@ -78,7 +77,7 @@ def is_mpi_rank_nonzero():
         if hasattr(sys.modules['mpi4py'], 'MPI'):
             MPI = sys.modules['mpi4py'].MPI
 
-    if MPI is None:
+    if MPI is None: 
         return False
     elif hasattr(MPI, "Is_finalized") and MPI.Is_finalized():
         return False
