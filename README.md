@@ -2,7 +2,7 @@ Installation
 ---------------
 
 1. Modify `LOGFILE_ROOT` in sitecustomize.py to point at a writeable directory
-2. Place sitecustomize.py in the lib/pythonX.Y/site-packages/ directory of your Python installation
+2. Place `sitecustomize.py` in the `lib/pythonX.Y/site-packages/` directory of your Python installation
 
 How it works
 -------------
