@@ -27,7 +27,7 @@ import sys
 
 DATETIME_FMT = '%m-%d-%Y %H:%M:%S.%f'
 #LOGFILE_ROOT = os.path.join('/lus', 'theta-fs0', 'logs', 'pythonlogging', 'module_usage')
-LOGFILE_ROOT = os.path.join('/lus', 'swift', 'logs', 'pythonlogging', 'module_usage')
+LOGFILE_ROOT = os.path.join('/lus', 'swift', 'soft', 'logs', 'pythonlogging', 'module_usage')
 
 def date_fmt(n):
     return "%02d" % n
