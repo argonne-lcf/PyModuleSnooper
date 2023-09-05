@@ -7,7 +7,11 @@ import os
 
 def extract_data_from_log(log_filename, ignore_modules, categories):
    with open(log_filename, "r") as f:
-      log_data = json.load(f)
+      try:
+         log_data = json.load(f)
+      except:
+         print("failed to parse the json in file: ",log_filename)
+         return None
 
    rows = []
    for module, version in log_data["versions"].items():
@@ -81,7 +85,8 @@ def extract_data_from_log(log_filename, ignore_modules, categories):
 def parallel_processing(log_files, ignore_modules, categories, n_processes):
    with Pool(n_processes) as p:
       dfs = p.starmap(extract_data_from_log, [(log, ignore_modules, categories) for log in log_files])
-   return pd.concat(dfs, ignore_index=True)
+   valid_dfs = [df for df in dfs if df is not None]
+   return pd.concat(valid_dfs, ignore_index=True)
 
 
 if __name__ == "__main__":
@@ -98,6 +103,8 @@ The script is currently written to process 1 month at a time.
    parser.add_argument("-i", "--ignore", help="JSON file with list of modules to ignore. Example Contents: ['os','sys',...]", required=True)
    parser.add_argument("-c", "--category", help="JSON file defining module categories. Example Contents: {'AI':['tensorflow',..],'IO':['pandas','hdf5'],..}", required=True)
    
+   parser.add_argument("--overwrite",action="store_true",help="overwrite existing output files.",default=False)
+
    args = parser.parse_args()
 
    # Load modules to ignore
@@ -124,8 +131,12 @@ The script is currently written to process 1 month at a time.
          print(f"No log files found for {day}. Skipping.")
          continue
 
-      print(f"Processing {len(daily_log_files)} files for {day}...")
+      print(f"Processing {len(daily_log_files)} files for {day}...",end='')
+      daily_output_path = os.path.join(args.output, f'modules_{year}_{month}_{day}.csv.gz')
+      if os.path.exists(daily_output_path) and not args.overwrite:
+         print(" skipped.")
+         continue
 
       daily_df = parallel_processing(daily_log_files, ignore_modules, categories, args.nprocs)
-      daily_output_path = os.path.join(args.output, f'modules_{year}_{month}_{day}.csv.gz')
       daily_df.to_csv(daily_output_path, index=False, compression='gzip')
+      print(" done processing.")
