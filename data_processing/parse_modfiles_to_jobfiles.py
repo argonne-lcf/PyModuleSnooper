@@ -4,6 +4,22 @@ import glob
 import os
 import subprocess
 import json
+import dateparser
+
+PBS_JOB_STATE_MAP = {
+   'B': 'Array Running',
+   'E': 'Exiting',
+   'F': 'Finished',
+   'H': 'Held',
+   'M': 'Moved',
+   'Q': 'Queued',
+   'R': 'Running',
+   'S': 'Suspended',
+   'T': 'Transferring',
+   'U': 'Cycle Suspend',
+   'W': 'Waiting',
+   'X': 'SubJob Exiting',
+}
 
 def get_seconds(time_str):
    if time_str:
@@ -62,34 +78,47 @@ def get_job_info_as_json(job_id):
 
 def process_dataframe(df):
    def agg_func(x):
-      categories = [cat for cat in x['Category'].unique().tolist() if cat != 'none']
+      output = pd.Series([['none'], [], None, None, None, None, None, None, None], 
+                        index=['Categories', 'Non-Ignored Modules', 'Filesystems', 'Award Category', 'Walltime', 'Nodes', 'Runtime', 'Exit Status', 'Job State'])
+      if len(x) > 0:
       
-      if not categories:
-         categories = ['none']
-      
-      non_ignored_modules = x[x['Ignored'] == False]['Module'].unique().tolist()
-      
-      job_data = get_job_info_as_json(x['Job ID'].iloc[0])
-      if job_data:
-         key = list(job_data["Jobs"].keys())[0]
-         job_details = job_data["Jobs"][key]
+         categories = [cat for cat in x['Category'].unique().tolist() if cat != 'none']
          
-         # Extract required data from Resource_List and resources_used
-         filesystems = job_details.get("Resource_List", {}).get("filesystems", None)
-         award_category = job_details.get("Resource_List", {}).get("award_category", None)
-         walltime_resource = job_details.get("Resource_List", {}).get("walltime", None)
-         select = job_details.get("Resource_List", {}).get("select", None)
-         if(isinstance(select,str)):
-            select = int(select.split(":")[0])
+         if not categories:
+            categories = ['none']
          
-         walltime_used = job_details.get("resources_used", {}).get("walltime", None)
-         exit_status = job_details.get("Exit_status", None)
+         non_ignored_modules = x[x['Ignored'] == False]['Module'].unique().tolist()
          
-         return pd.Series([categories, non_ignored_modules, filesystems, award_category, walltime_resource, select, walltime_used, exit_status], 
-                           index=['Categories', 'Non-Ignored Modules', 'Filesystems', 'Award Category', 'Walltime', 'Nodes', 'Runtime', 'Exit Status'])
-      else:
-         return pd.Series([categories, non_ignored_modules, None, None, None, None, None, None], 
-                           index=['Categories', 'Non-Ignored Modules', 'Filesystems', 'Award Category', 'Walltime', 'Nodes', 'Runtime', 'Exit Status'])
+         job_data = get_job_info_as_json(x['Job ID'].iloc[0])
+         if job_data:
+            key = list(job_data["Jobs"].keys())[0]
+            job_details = job_data["Jobs"][key]
+            
+            # Extract required data from Resource_List and resources_used
+            filesystems = job_details.get("Resource_List", {}).get("filesystems", None)
+            award_category = job_details.get("Resource_List", {}).get("award_category", None)
+            walltime_resource = job_details.get("Resource_List", {}).get("walltime", None)
+            if isinstance(walltime_resource,str):
+               walltime_resource = get_seconds(walltime_resource)
+            select = job_details.get("Resource_List", {}).get("select", None)
+            if(isinstance(select,str)):
+               select = int(select.split(":")[0])
+            
+            stime = job_details.get("stime", None)
+            obittime = job_details.get("obittime", None)
+            walltime_used = 0
+            if stime is not None and obittime is not None:
+               stime = dateparser.parse(stime)
+               obittime = dateparser.parse(obittime)
+               walltime_used = (obittime - stime).total_seconds()
+            exit_status = job_details.get("Exit_status", None)
+            job_state = job_details.get("job_state",None)
+            if job_state:
+               job_state = PBS_JOB_STATE_MAP[job_state]
+            
+            output = pd.Series([categories, non_ignored_modules, filesystems, award_category, walltime_resource, select, walltime_used, exit_status, job_state], 
+                              index=['Categories', 'Non-Ignored Modules', 'Filesystems', 'Award Category', 'Walltime', 'Nodes', 'Runtime', 'Exit Status', 'Job State'])
+      return output
 
    result = df.groupby('Job ID').apply(agg_func)
 
@@ -97,9 +126,6 @@ def process_dataframe(df):
                'Timestamp', 'PALS Depth', 'PMI Size', 'PMI Local Size']
    for col in job_cols:
       result[col] = df.groupby('Job ID')[col].first()
-   
-   result['Walltime'] = result['Walltime'].apply(get_seconds)
-   result['Runtime'] = result['Runtime'].apply(get_seconds)
 
    return result.reset_index()
 
@@ -121,8 +147,12 @@ if __name__ == "__main__":
       
       # Read the compressed CSV file
       df = pd.read_csv(file, compression='gzip')
-      processed_df = process_dataframe(df)
+      
+      if len(df) > 0 and len(df['Job ID'].unique()) > 1:
+         processed_df = process_dataframe(df)
 
-      # Create the output filename by replacing the existing ".csv.gz" with the postfix + ".csv.gz"
-      processed_df.to_csv(output_filename, index=False, compression='gzip')
-      print(f"Processed data from {file} saved to {output_filename}.")
+         # Create the output filename by replacing the existing ".csv.gz" with the postfix + ".csv.gz"
+         processed_df.to_csv(output_filename, index=False, compression='gzip')
+         print(f"Processed data from {file} saved to {output_filename}.")
+      else:
+         print(f"File {file} contains an emtpy dataframe or no job ids")
