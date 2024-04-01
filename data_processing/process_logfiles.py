@@ -6,13 +6,16 @@ from multiprocessing import Pool
 import os
 
 def extract_data_from_log(log_filename, ignore_modules, categories):
-   with open(log_filename, "r") as f:
-      try:
-         log_data = json.load(f)
-      except:
-         print("failed to parse the json in file: ",log_filename)
-         return None
-
+   try:
+     with open(log_filename, "r") as f:
+        try:
+          log_data = json.load(f)
+        except:
+          print("failed to parse the json in file: ",log_filename)
+          return None
+   except:
+     print("failed to open file: ",log_filename)
+     return None
    try:
       rows = []
       for module, version in log_data["versions"].items():

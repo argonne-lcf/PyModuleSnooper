@@ -116,6 +116,7 @@ def plot_accounts(df, filename, accounts_to_exclude=None, users_to_exclude=None)
       df = df[~df['User'].isin(users_to_exclude)]
 
    account_node_hours = df.groupby('Account')['Node-Hours'].sum()
+   account_node_hours = account_node_hours.sort_values(ascending=False)
    total_node_hours = int(account_node_hours.sum())
    account_node_hours.plot(kind='bar', figsize=(12, 6))
    plt.title(f'Node-Hours by Account; Total Node-Hours: {total_node_hours}')
