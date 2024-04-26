@@ -24,10 +24,12 @@ import logging
 import os
 import socket
 import sys
+import re
 
 DATETIME_FMT = '%m-%d-%Y %H:%M:%S.%f'
-#LOGFILE_ROOT = os.path.join('/lus', 'theta-fs0', 'logs', 'pythonlogging', 'module_usage')
-LOGFILE_ROOT = os.path.join('/lus', 'swift', 'soft', 'logs', 'pythonlogging', 'module_usage')
+# April 2024 update to Sirius and Polaris: move logging directory from /lus/swift/soft/...
+# (no longer writable from Polaris) to Eagle. Note, Sirius does not mount Eagle
+LOGFILE_ROOT = os.path.join('/lus', 'eagle', 'logs', 'pythonlogging', 'module_usage')
 
 def date_fmt(n):
     return "%02d" % n
@@ -108,4 +110,9 @@ def inspect_and_log():
     logger.log_modules(module_paths, module_versions)
 
 if not os.environ.get('DISABLE_PYMODULE_LOG', False):
-    atexit.register(inspect_and_log)
+    # Test if we are on Sirius; if so, dont register the logger
+    with open('/etc/pbs.conf', 'r') as f:
+        for line in f.readlines():
+            if not re.search("PBS_SERVER=sirius", line):
+                atexit.register(inspect_and_log)
+    # [[ " $( qstat -B ) " =~ "polaris" ]] && echo "polaris!"
