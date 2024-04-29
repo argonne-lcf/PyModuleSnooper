@@ -110,9 +110,12 @@ def inspect_and_log():
     logger.log_modules(module_paths, module_versions)
 
 if not os.environ.get('DISABLE_PYMODULE_LOG', False):
-    # Test if we are on Sirius; if so, dont register the logger
+    # dont register the logger on Sirius since Eagle is not mounted
+    on_sirius=False
     with open('/etc/pbs.conf', 'r') as f:
         for line in f.readlines():
-            if not re.search("PBS_SERVER=sirius", line):
-                atexit.register(inspect_and_log)
+            if re.search("PBS_SERVER=sirius", line):
+                on_sirius=True
+    if not on_sirius:
+        atexit.register(inspect_and_log)
     # [[ " $( qstat -B ) " =~ "polaris" ]] && echo "polaris!"
