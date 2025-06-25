@@ -10,8 +10,8 @@ How it works
 This is emitted on interpreter shutdown under most normal termination circumstances.  If `mpi4py` is 
 loaded, only rank 0 will log.
 
-Currently, a timestamp, the Python executable, sys.path, Cobalt environment variables, and dictionary containing all
-loaded module paths is logged. This data can reach about 220K bytes per-log line when Tensorflow is imported, for instance.
+Currently, a timestamp, the Python executable, `sys.path`, environment variables (including those set by the PBS scheduler, e.g.), and dictionary containing all
+loaded module paths is logged. This data can reach about 220K bytes per-log line when TensorFlow is imported, for instance.
 
 Disable Snooping
 ----------------
