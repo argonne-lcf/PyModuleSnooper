@@ -31,8 +31,10 @@ DATETIME_FMT = '%m-%d-%Y %H:%M:%S.%f'
 # (no longer writable from Polaris) to Eagle. Note, Sirius does not mount Eagle
 LOGFILE_ROOT = os.path.join('/lus', 'eagle', 'logs', 'pythonlogging', 'module_usage')
 
+
 def date_fmt(n):
     return "%02d" % n
+
 
 class DictLogger:
     '''Set up logger to emit message to system log facility'''
@@ -53,8 +55,8 @@ class DictLogger:
         logger.setLevel(logging.INFO)
 
         # LOGROOT/year/month/day/hostname.PID.hour.minute.second.m
-        year,month,day = map(date_fmt, (now.year,now.month,now.day))
-        job_id = os.environ.get('PBS_JOBID', 'no-ID')
+        year, month, day = map(date_fmt, (now.year, now.month, now.day))
+        # job_id = os.environ.get('PBS_JOBID', 'no-ID')
         log_dir = os.path.join(LOGFILE_ROOT, year, month, day)
 
         fname = '{}.{}.{}'.format(
@@ -71,6 +73,7 @@ class DictLogger:
         self._info['modules'] = module_paths
         self._info['versions'] = module_versions
         self._logger.info(json.dumps(self._info))
+
 
 def is_mpi_rank_nonzero():
     '''False if not using mpi4py, or MPI has been finalized, or MPI has
@@ -91,14 +94,17 @@ def is_mpi_rank_nonzero():
     else:
         return False
 
+
 def inspect_and_log():
     '''Grab paths of all loaded modules and log them'''
-    if is_mpi_rank_nonzero(): return
-    if os.environ.get('DISABLE_PYMODULE_LOG', False): return
+    if is_mpi_rank_nonzero():
+        return
+    if os.environ.get('DISABLE_PYMODULE_LOG', False):
+        return
 
     logger = DictLogger()
     module_paths = {
-        module_name : module.__file__
+        module_name: module.__file__
         for module_name, module in sys.modules.copy().items()
         if hasattr(module, '__file__')
     }
@@ -109,13 +115,14 @@ def inspect_and_log():
     }
     logger.log_modules(module_paths, module_versions)
 
+
 if not os.environ.get('DISABLE_PYMODULE_LOG', False):
     # dont register the logger on Sirius since Eagle is not mounted
-    on_sirius=False
+    on_sirius = False
     with open('/etc/pbs.conf', 'r') as f:
         for line in f.readlines():
             if re.search("PBS_SERVER=sirius", line):
-                on_sirius=True
+                on_sirius = True
     if not on_sirius:
         atexit.register(inspect_and_log)
     # [[ " $( qstat -B ) " =~ "polaris" ]] && echo "polaris!"
