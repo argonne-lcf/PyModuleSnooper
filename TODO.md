@@ -1,7 +1,8 @@
 # Incomplete and malformed logs
 
-The script is supposed to implicitly capture all PBS environment variables via `env': os.environ.copy(),` for any usage of the conda modules on a compute node, interactive or batch job.
+The logger is supposed to be robust and flexible for most [recommended usages of Python on Polaris](https://docs.alcf.anl.gov/polaris/data-science/python/) that are based on the shared Anaconda modules (and eventually Aurora; and formerly ThetaKNL and ThetaGPU). For example, it should also log modules installed on a virtual environment that extends the base conda environments via `--system-site-packages`.
 
+The script is also supposed to implicitly capture all PBS environment variables via `env': os.environ.copy(),` for any usage of the conda modules on a compute node, interactive or batch job.
 E.g. in `/lus/eagle/logs/pythonlogging/module_usage/2025/04/03/x3004c0s13b0n0.237323.16.21.10.421970` on Polaris, you can see:
 ```text
  "PBS_JOBID": "4096686.polaris-pbs-01.hsn.cm.polaris.alcf.anl.gov",
