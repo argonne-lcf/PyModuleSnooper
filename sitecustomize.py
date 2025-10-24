@@ -108,10 +108,28 @@ def inspect_and_log():
         for module_name, module in sys.modules.copy().items()
         if hasattr(module, '__file__')
     }
+
+    from typing import Any
+
+    def get_module_version(module_name: str, module: Any) -> str | None:
+        from importlib.metadata import version, PackageNotFoundError
+
+        try:
+            return version(module)
+        except (ModuleNotFoundError, PackageNotFoundError):
+            try:
+                return version(str(module_name))
+            except TypeError:
+                try:
+                    return version(module_name)
+                except Exception:
+                    return "unknown"
+        except Exception:
+            return "unknown"
+
     module_versions = {
-        module_name: str(getattr(module, "__version__", None))
-        for module_name, module in sys.modules.copy().items()
-        if module_name in module_paths
+        module_name: get_module_version(module_name=module_name, module=module)
+        for module_name, module in sys.modules.copy().items() if module_name in module_paths
     }
     logger.log_modules(module_paths, module_versions)
 
